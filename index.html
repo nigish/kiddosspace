@@ -14,6 +14,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
     <script src="templates.js"></script>
 
     <script>
@@ -1431,16 +1432,59 @@
             document.querySelectorAll('input[name="pdf-orientation"]').forEach(r => r.addEventListener('change', renderThemeSelector));
 
             // SINGLE poster button: direct in-browser PDF download (no Lemon Squeezy, no fake payment)
-            document.getElementById('btn-buy-poster').addEventListener('click', () => {
-                const babyNameVal = document.getElementById('pdf-baby-name').value.trim();
-                const selectedOrientation = document.querySelector('input[name="pdf-orientation"]:checked').value;
-                const selectedTheme = document.querySelector('input[name="pdf-theme"]:checked').value;
+            // ===== Lemon Squeezy overlay checkout =====
+            // Step one: create the product in Lemon Squeezy, copy its checkout/buy URL, paste it below.
+            // Step two: leave empty to stay in FREE TEST MODE — clicking just downloads the PDF, no payment.
+            const LEMONSQUEEZY_CHECKOUT_URL = ''; // e.g. 'https://myfirst100foods.lemonsqueezy.com/buy/xxxxxxxx'
+            let pendingOrder = null;
+
+            // Generate the personalized tracker PDF from a saved order
+            function deliverTracker(order) {
+                if (!order) return;
                 try {
-                    exportSinglePagePDF(babyNameVal, selectedOrientation, selectedTheme);
+                    exportSinglePagePDF(order.name, order.orientation, order.theme);
+                } catch (err) {
+                    console.error('PDF generation issue:', err);
+                    alert('We had trouble drawing your tracker. Make sure your browser allows downloads, then try again.');
+                }
+            }
+
+            // Hook the overlay's success event → deliver the PDF on the same page (no redirect)
+            if (window.createLemonSqueezy) window.createLemonSqueezy();
+            if (window.LemonSqueezy && window.LemonSqueezy.Setup) {
+                window.LemonSqueezy.Setup({
+                    eventHandler: (event) => {
+                        if (event && event.event === 'Checkout.Success') {
+                            const order = pendingOrder; pendingOrder = null;
+                            try { window.LemonSqueezy.Url.Close(); } catch (e) {}
+                            closeModal(modalPremium);
+                            deliverTracker(order);
+                        }
+                    }
+                });
+            }
+
+            document.getElementById('btn-buy-poster').addEventListener('click', () => {
+                const order = {
+                    name: document.getElementById('pdf-baby-name').value.trim(),
+                    orientation: document.querySelector('input[name="pdf-orientation"]:checked').value,
+                    theme: document.querySelector('input[name="pdf-theme"]:checked').value
+                };
+
+                // FREE TEST MODE — no checkout URL configured yet → just download
+                if (!LEMONSQUEEZY_CHECKOUT_URL) {
+                    deliverTracker(order);
                     closeModal(modalPremium);
-                } catch (pdfGenerationError) {
-                    console.error("PDF generation issue:", pdfGenerationError);
-                    alert("We had trouble drawing your poster. Make sure your browser settings allow automatic file downloads!");
+                    return;
+                }
+
+                // PAID — open the Lemon Squeezy payment overlay; PDF is delivered on Checkout.Success
+                pendingOrder = order;
+                const url = LEMONSQUEEZY_CHECKOUT_URL + (LEMONSQUEEZY_CHECKOUT_URL.includes('?') ? '&' : '?') + 'embed=1';
+                if (window.LemonSqueezy && window.LemonSqueezy.Url) {
+                    window.LemonSqueezy.Url.Open(url);
+                } else {
+                    window.open(url, '_blank'); // fallback if lemon.js didn't load
                 }
             });
 
