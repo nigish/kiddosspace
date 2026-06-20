@@ -15,9 +15,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
-    <!-- Plausible Analytics — privacy-friendly, cookieless (no consent banner needed) -->
-    <script defer data-domain="myfirst100foods.com" src="https://plausible.io/js/script.js"></script>
-    <script>window.plausible = window.plausible || function () { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
     <script src="templates.js"></script>
 
     <script>
@@ -613,6 +610,17 @@
         </div>
     </div>
 
+    <!-- ============ COOKIE CONSENT (first visit) ============ -->
+    <div id="cookie-banner" class="fixed inset-x-0 bottom-0 z-[80] hidden p-3 sm:p-4">
+        <div class="mx-auto max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+            <p class="text-xs sm:text-sm flex-1 text-gray-600">🍪 We use cookies for anonymous analytics to understand how the tracker is used — never to identify you. You can accept or decline.</p>
+            <div class="flex gap-2 flex-shrink-0">
+                <button id="cookie-decline" class="px-4 py-2 rounded-full text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-charcoal transition">Decline</button>
+                <button id="cookie-accept" class="px-4 py-2 rounded-full text-xs font-semibold bg-clay hover:bg-clay-deep text-white transition">Accept</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const NATIVE_DEFAULT_DATASET = [
             { id: "veg", name: "Vegetables", items: ["Avocado", "Sweet Potato", "Broccoli", "Carrot", "Butternut Squash", "Spinach", "Zucchini", "Peas", "Cauliflower", "Green Beans", "Pumpkin", "Beets", "Bell Peppers", "Mushroom", "Cucumber", "Celery", "Eggplant", "Onion", "Garlic", "Cabbage", "Parsnips", "Turnip", "Asparagus", "Potato", "Tomato"] },
@@ -661,11 +669,36 @@
             return `${catId}-${itemName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
         }
 
-        // Analytics — single helper so the provider can be swapped in one place (currently Plausible)
+        // Analytics — single helper. Sends to Google Analytics only after cookie consent (gtag is undefined until then).
         function track(name, props) {
-            try { if (window.plausible) window.plausible(name, props ? { props } : undefined); } catch (e) {}
+            try { if (window.gtag) window.gtag('event', name, props || {}); } catch (e) {}
         }
         let trackingStarted = false; // fire "started_tracking" once per page load
+
+        // Google Analytics 4 — loaded ONLY after the visitor accepts cookies (GDPR consent-first)
+        const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX'; // ← paste your GA4 Measurement ID here
+        function loadGoogleAnalytics() {
+            if (!GA_MEASUREMENT_ID || GA_MEASUREMENT_ID.indexOf('XXXX') !== -1 || window.gtag) return;
+            const s = document.createElement('script');
+            s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_MEASUREMENT_ID;
+            document.head.appendChild(s);
+            window.dataLayer = window.dataLayer || [];
+            window.gtag = function () { window.dataLayer.push(arguments); };
+            window.gtag('js', new Date());
+            window.gtag('config', GA_MEASUREMENT_ID, { anonymize_ip: true });
+        }
+        function initCookieConsent() {
+            const banner = document.getElementById('cookie-banner');
+            const choice = localStorage.getItem('cookie_consent');
+            const gaReady = GA_MEASUREMENT_ID && GA_MEASUREMENT_ID.indexOf('XXXX') === -1;
+            if (choice === 'accepted') { loadGoogleAnalytics(); return; }
+            if (choice === 'declined') return;
+            if (gaReady && banner) banner.classList.remove('hidden'); // only ask when cookies will actually be set
+            const accept = document.getElementById('cookie-accept');
+            const decline = document.getElementById('cookie-decline');
+            if (accept) accept.addEventListener('click', () => { localStorage.setItem('cookie_consent', 'accepted'); if (banner) banner.classList.add('hidden'); loadGoogleAnalytics(); });
+            if (decline) decline.addEventListener('click', () => { localStorage.setItem('cookie_consent', 'declined'); if (banner) banner.classList.add('hidden'); });
+        }
 
         function calculateStats() {
             let totalItems = 0, triedCount = 0;
@@ -1278,6 +1311,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initStorage();
             renderApp();
+            initCookieConsent();
 
             const stage = document.getElementById('stage');
 
