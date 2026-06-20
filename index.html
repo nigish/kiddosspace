@@ -15,6 +15,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
+    <!-- Plausible Analytics — privacy-friendly, cookieless (no consent banner needed) -->
+    <script defer data-domain="myfirst100foods.com" src="https://plausible.io/js/script.js"></script>
+    <script>window.plausible = window.plausible || function () { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
     <script src="templates.js"></script>
 
     <script>
@@ -658,6 +661,12 @@
             return `${catId}-${itemName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
         }
 
+        // Analytics — single helper so the provider can be swapped in one place (currently Plausible)
+        function track(name, props) {
+            try { if (window.plausible) window.plausible(name, props ? { props } : undefined); } catch (e) {}
+        }
+        let trackingStarted = false; // fire "started_tracking" once per page load
+
         function calculateStats() {
             let totalItems = 0, triedCount = 0;
             const categoryBreakdown = {};
@@ -689,6 +698,7 @@
         }
 
         function triggerCelebrationModal(milestone) {
+            track('milestone_reached', { percent: String(milestone) });
             const modal = document.getElementById('modal-celebration');
             const title = document.getElementById('celebration-title');
             const subtitle = document.getElementById('celebration-subtitle');
@@ -1082,7 +1092,7 @@
         // ---------- Modal helpers ----------
         function openModal(modal) {
             modal.classList.remove('hidden');
-            if (modal.id === 'modal-premium') { renderThemeSelector(); updatePriceUI(); }
+            if (modal.id === 'modal-premium') { renderThemeSelector(); updatePriceUI(); track('tracker_modal_opened'); }
             setTimeout(() => {
                 modal.classList.remove('opacity-0');
                 const interior = modal.querySelector('.transform');
@@ -1136,6 +1146,7 @@
                     state.tried.splice(index, 1);
                 } else {
                     state.tried.push(foodId);
+                    if (!trackingStarted) { trackingStarted = true; track('started_tracking'); }
                     const currentStats = calculateStats();
                     evaluateMilestoneTriggers(currentStats.percentage);
                 }
@@ -1236,6 +1247,7 @@
 
         // ---------- Keepsake buy-nudge (after a few foods tried) ----------
         function showKeepsakeNudge() {
+            track('keepsake_nudge_shown');
             const holder = document.getElementById('keepsake-nudge-images');
             if (holder) {
                 const name = (document.getElementById('pdf-baby-name').value || '').trim() || 'Nadin';
@@ -1322,7 +1334,7 @@
 
             // FAQ overlay open/close
             const faqOverlay = document.getElementById('faq-overlay');
-            const openFaq = () => { faqOverlay.classList.remove('hidden'); setTimeout(() => faqOverlay.classList.remove('opacity-0'), 10); };
+            const openFaq = () => { track('faq_opened'); faqOverlay.classList.remove('hidden'); setTimeout(() => faqOverlay.classList.remove('opacity-0'), 10); };
             const closeFaq = () => { faqOverlay.classList.add('opacity-0'); setTimeout(() => faqOverlay.classList.add('hidden'), 300); };
             document.getElementById('btn-open-faq').addEventListener('click', openFaq);
             document.getElementById('btn-close-faq').addEventListener('click', closeFaq);
@@ -1371,6 +1383,7 @@
                         });
                         if (!res.ok) throw new Error('Request failed');
                         lastSent = Date.now();
+                        track('contact_submitted');
                         showStatus('font-medium text-[#2f8f6f]', 'Thank you! Your message is on its way. 💌');
                         contactForm.reset();
                     } catch (err) {
@@ -1460,6 +1473,7 @@
                     eventHandler: (event) => {
                         if (event && event.event === 'Checkout.Success') {
                             const order = pendingOrder; pendingOrder = null;
+                            track('purchase_success', { theme: order ? order.theme : 'unknown' });
                             try { window.LemonSqueezy.Url.Close(); } catch (e) {}
                             closeModal(modalPremium);
                             deliverTracker(order);
@@ -1485,6 +1499,7 @@
 
                 // PAID — open the Lemon Squeezy payment overlay; PDF is delivered on Checkout.Success
                 pendingOrder = order;
+                track('checkout_opened', { theme: order.theme });
                 const url = checkoutUrl + (checkoutUrl.includes('?') ? '&' : '?') + 'embed=1';
                 if (window.LemonSqueezy && window.LemonSqueezy.Url) {
                     window.LemonSqueezy.Url.Open(url);
@@ -1497,6 +1512,7 @@
             document.getElementById('btn-export-data').addEventListener('click', () => {
                 const dataString = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
                 navigator.clipboard.writeText(dataString).then(() => {
+                    track('memory_code_exported');
                     alert("Your progress memory code has been copied to your clipboard! Paste it into a text message or note to save it safely.");
                 });
             });
@@ -1511,6 +1527,7 @@
                             saveStorage();
                             renderApp();
                             closeModal(modalSettings);
+                            track('memory_code_imported');
                             alert("Wonderful news! Your saved weaning progress has been perfectly restored.");
                         } else { throw new Error(); }
                     } catch (e) {
