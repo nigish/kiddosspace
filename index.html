@@ -1322,10 +1322,8 @@
             document.getElementById('btn-open-faq').addEventListener('click', openFaq);
             document.getElementById('btn-close-faq').addEventListener('click', closeFaq);
 
-            // Contact form → emails support@ via FormSubmit (no mail client needed; works on the live site).
-            // After you activate the form, swap this for the hashed endpoint to hide the address:
-            //   const CONTACT_ENDPOINT = 'https://formsubmit.co/ajax/<your-hash>';
-            const CONTACT_ENDPOINT = 'https://formsubmit.co/ajax/support@myfirst100foods.com';
+            // Contact form → emails support@ via FormSubmit (hashed endpoint keeps the address out of the page source).
+            const CONTACT_ENDPOINT = 'https://formsubmit.co/ajax/347db99d537d3f7b679888f2eae92fde';
             const contactForm = document.getElementById('contact-form');
             if (contactForm) {
                 let lastSent = 0; // throttle: block rapid repeat submissions
