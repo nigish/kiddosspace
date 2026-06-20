@@ -430,7 +430,7 @@
                         </label>
                         <label class="cursor-pointer border border-gray-200 rounded-xl p-2.5 flex items-center gap-2.5 hover:bg-gray-50 has-[:checked]:border-clay has-[:checked]:bg-oat/20 transition-all">
                             <input type="radio" name="pdf-theme" value="pink" class="accent-clay w-4 h-4" />
-                            <span class="text-xs font-medium text-charcoal">Ribbon & Cherry (€4.99) 🎀</span>
+                            <span class="text-xs font-medium text-charcoal">Ribbon & Strawberries (€4.99) 🍓</span>
                         </label>
                         <label class="cursor-pointer border border-gray-200 rounded-xl p-2.5 flex items-center gap-2.5 hover:bg-gray-50 has-[:checked]:border-clay has-[:checked]:bg-oat/20 transition-all">
                             <input type="radio" name="pdf-theme" value="sage" class="accent-clay w-4 h-4" />
@@ -669,6 +669,14 @@
             return `${catId}-${itemName.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
         }
 
+        // Pick the theme art: a landscape-specific image if one exists, otherwise the default (portrait) one
+        function themeImage(theme, landscape) {
+            if (landscape && window.THEME_TEMPLATES_LANDSCAPE && window.THEME_TEMPLATES_LANDSCAPE[theme]) {
+                return window.THEME_TEMPLATES_LANDSCAPE[theme];
+            }
+            return (window.THEME_TEMPLATES && window.THEME_TEMPLATES[theme]) ? window.THEME_TEMPLATES[theme] : null;
+        }
+
         // Analytics — single helper. Sends to Google Analytics only after cookie consent (gtag is undefined until then).
         function track(name, props) {
             try { if (window.gtag) window.gtag('event', name, props || {}); } catch (e) {}
@@ -805,7 +813,7 @@
                 blue: { bg: [244, 249, 252], textTitle: [21, 101, 192], textCat: [21, 101, 192], lineCat: [21, 101, 192], textItem: [13, 71, 161], border1: [144, 202, 249] }
             };
             const cfg = themes[chosenTheme] || themes.classic;
-            const templateAsset = (window.THEME_TEMPLATES && window.THEME_TEMPLATES[chosenTheme]) ? window.THEME_TEMPLATES[chosenTheme] : null;
+            const templateAsset = themeImage(chosenTheme, isLandscape);
 
             if (templateAsset) {
                 doc.addImage(templateAsset, 'PNG', 0, 0, pageWidth, pageHeight);
@@ -1238,7 +1246,7 @@
         function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
         function posterPreviewHTML(theme, name, orientation) {
             const landscape = orientation === 'l';
-            const tpl = (window.THEME_TEMPLATES && window.THEME_TEMPLATES[theme]) ? window.THEME_TEMPLATES[theme] : null;
+            const tpl = themeImage(theme, landscape);
             const display = (name && name.trim()) ? name.trim() : 'Nadin';
             const bg = tpl ? `background-image:url('${tpl}')` : 'background-color:#FFF8F2;box-shadow:inset 0 0 0 2px rgba(226,149,120,.35),0 6px 18px rgba(43,45,66,.16)';
             let foods = '';
@@ -1266,7 +1274,7 @@
             const orientation = (document.querySelector('input[name="pdf-orientation"]:checked') || {}).value || 'p';
             const themes = [
                 { v: 'classic', label: 'Minimalist Classic' },
-                { v: 'pink', label: 'Ribbon & Cherry 🎀' },
+                { v: 'pink', label: 'Ribbon & Strawberries 🍓' },
                 { v: 'sage', label: 'Tomato & Car 🚗' },
                 { v: 'blue', label: 'Monkey & Banana 🐒' }
             ];
@@ -1285,7 +1293,7 @@
             if (holder) {
                 const name = (document.getElementById('pdf-baby-name').value || '').trim() || 'Nadin';
                 const order = [
-                    { v: 'pink', label: 'Ribbon & Cherry' },
+                    { v: 'pink', label: 'Ribbon & Strawberries' },
                     { v: 'sage', label: 'Tomato & Car' },
                     { v: 'blue', label: 'Monkey & Banana' }
                 ];
