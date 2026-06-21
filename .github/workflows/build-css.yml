@@ -28,5 +28,6 @@ jobs:
             echo "styles.css unchanged"
           else
             git commit -m "Build styles.css [skip ci]"
+            git pull --rebase origin main || true
             git push
           fi
