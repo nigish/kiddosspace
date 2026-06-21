@@ -341,6 +341,10 @@
 
     <!-- Floating action buttons (top-right) -->
     <div class="fixed top-5 right-4 sm:right-6 z-40 flex items-center gap-2">
+        <button id="btn-install-hud" title="Install app" style="display:none" class="h-11 px-3.5 flex items-center gap-1.5 bg-white/85 backdrop-blur-xl border border-clay/30 shadow-lg shadow-charcoal/5 rounded-full text-clay-deep hover:bg-white hover:scale-105 transition text-xs font-semibold">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.9" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+            <span class="hidden sm:inline">Install</span>
+        </button>
         <button id="btn-open-search" title="Search foods" class="w-11 h-11 flex items-center justify-center bg-white/80 backdrop-blur-xl border border-white/60 shadow-lg shadow-charcoal/5 rounded-full text-charcoal hover:text-clay hover:scale-105 transition">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.637 10.637z" /></svg>
         </button>
@@ -924,7 +928,8 @@
                 classic: { bg: null, textTitle: [43, 45, 66], textCat: [226, 149, 120], lineCat: [226, 149, 120], textItem: [43, 45, 66], border1: [226, 149, 120] },
                 pink: { bg: [255, 245, 247], textTitle: [74, 21, 37], textCat: [194, 24, 91], lineCat: [194, 24, 91], textItem: [74, 21, 37], border1: [244, 143, 177] },
                 sage: { bg: [244, 249, 246], textTitle: [45, 90, 86], textCat: [45, 90, 86], lineCat: [45, 90, 86], textItem: [28, 59, 56], border1: [131, 197, 190] },
-                blue: { bg: [244, 249, 252], textTitle: [21, 101, 192], textCat: [21, 101, 192], lineCat: [21, 101, 192], textItem: [13, 71, 161], border1: [144, 202, 249] }
+                blue: { bg: [244, 249, 252], textTitle: [21, 101, 192], textCat: [21, 101, 192], lineCat: [21, 101, 192], textItem: [13, 71, 161], border1: [144, 202, 249] },
+                boho: { bg: [250, 246, 239], textTitle: [43, 45, 66], textCat: [198, 110, 80], lineCat: [198, 110, 80], textItem: [43, 45, 66], border1: [226, 149, 120] }
             };
             const cfg = themes[chosenTheme] || themes.classic;
             const templateAsset = themeImage(chosenTheme, isLandscape);
@@ -1413,7 +1418,8 @@
                 { v: 'classic', label: 'Minimalist Classic' },
                 { v: 'pink', label: 'Ribbon & Strawberries 🍓' },
                 { v: 'sage', label: 'Tomato & Car 🚗' },
-                { v: 'blue', label: 'Monkey & Banana 🐒' }
+                { v: 'blue', label: 'Monkey & Banana 🐒' },
+                { v: 'boho', label: 'Boho Neutral ☀️' }
             ];
             container.innerHTML = themes.map(t => `
                 <label class="theme-card cursor-pointer block rounded-2xl border-2 ${t.v === selected ? 'border-clay' : 'border-transparent'} hover:border-clay/40 transition-all p-1.5 bg-gray-50" data-theme-card="${t.v}">
@@ -1653,7 +1659,8 @@
                 classic: '',
                 pink: '',
                 sage: '',
-                blue: ''
+                blue: '',
+                boho: ''
             };
             let pendingOrder = null;
 
@@ -1752,30 +1759,38 @@
         }
         (function () {
             var section = document.getElementById('install-section');
-            var btn = document.getElementById('btn-install-app');
+            var btn = document.getElementById('btn-install-app');     // button inside Settings
+            var hudBtn = document.getElementById('btn-install-hud');   // button in the top bar
             var iosHint = document.getElementById('ios-install-hint');
             if (!section) return;
             var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-            if (standalone) return; // already installed
+            if (standalone) return; // already installed → no need to prompt
 
-            function showInstallButton() {
+            function showInstall() {
                 section.classList.remove('hidden');
                 btn.classList.remove('hidden');
+                if (hudBtn) hudBtn.style.display = 'flex';
             }
-            if (window.__bip) showInstallButton();
-            window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.__bip = e; showInstallButton(); });
-
-            btn.addEventListener('click', async function () {
+            function hideInstall() {
+                section.classList.add('hidden');
+                if (hudBtn) hudBtn.style.display = 'none';
+            }
+            async function doInstall() {
                 if (!window.__bip) return;
                 window.__bip.prompt();
                 try { await window.__bip.userChoice; } catch (_) {}
                 window.__bip = null;
-                section.classList.add('hidden');
-                if (typeof track === 'function') track('app_installed_prompt');
-            });
-            window.addEventListener('appinstalled', function () { section.classList.add('hidden'); });
+                hideInstall();
+                if (typeof track === 'function') track('app_install_prompted');
+            }
 
-            // iOS Safari has no install prompt → show manual "Add to Home Screen" hint
+            if (window.__bip) showInstall();
+            window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.__bip = e; showInstall(); });
+            btn.addEventListener('click', doInstall);
+            if (hudBtn) hudBtn.addEventListener('click', doInstall);
+            window.addEventListener('appinstalled', hideInstall);
+
+            // iOS Safari has no install prompt → show the manual "Add to Home Screen" hint in Settings
             var ua = navigator.userAgent;
             var isIOS = /iphone|ipad|ipod/i.test(ua);
             var isSafari = /^((?!chrome|crios|fxios|android).)*safari/i.test(ua);
