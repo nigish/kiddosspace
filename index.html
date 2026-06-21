@@ -47,7 +47,8 @@
     <link rel="stylesheet" href="/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
-    <!-- templates.js (heavy theme art) is loaded lazily after the tracker is interactive -->
+    <!-- Tiny theme-art loader; each theme's art is fetched on demand from /art only when shown -->
+    <script defer src="templates.js"></script>
 
     <!-- Tailwind theme is precompiled into /styles.css via tailwind.config.js -->
     <style>
@@ -183,6 +184,7 @@
         /* Tick feedback: color change only — no scale/burst animation (it caused a right-edge page shake) */
 
         /* ---- Live keepsake preview — mirrors the PDF layout (title, per-category 3-col grid, box to the RIGHT) ---- */
+        .pv-holder { display: block; width: 100%; }
         .poster-preview { container-type: size; position: relative; width: 100%; aspect-ratio: 1 / 1.414; background-color: #FFF8F2; background-size: 100% 100%; background-position: center; border-radius: 8px; overflow: hidden; box-shadow: 0 6px 18px rgba(43,45,66,.16); }
         .poster-preview.landscape { aspect-ratio: 1.414 / 1; }
         .poster-preview.landscape .pp-cat-grid { grid-template-columns: repeat(4, 1fr); }
@@ -1406,6 +1408,23 @@
             const display = (document.getElementById('pdf-baby-name').value || '').trim() || 'Nadin';
             document.querySelectorAll('.poster-preview .pp-title').forEach(el => { el.textContent = `${display}'s First 100 Foods`; });
         }
+        // Per-theme lazy art: render a placeholder preview now, then fill in the art once it loads.
+        function previewHolder(theme, name, orientation, filled) {
+            const land = orientation === 'l';
+            return `<span class="pv-holder" data-art-theme="${theme}" data-art-land="${land ? 1 : 0}">${posterPreviewHTML(theme, name, orientation, filled)}</span>`;
+        }
+        function hydratePreviews(root, orientation, filled) {
+            if (!root || !window.loadThemeArt) return;
+            const name = (document.getElementById('pdf-baby-name') || {}).value || '';
+            root.querySelectorAll('.pv-holder').forEach(h => {
+                const theme = h.getAttribute('data-art-theme');
+                const land = h.getAttribute('data-art-land') === '1';
+                if (themeImage(theme, land)) return; // already loaded
+                window.loadThemeArt(theme, land).then(() => {
+                    h.innerHTML = posterPreviewHTML(theme, name, orientation, filled);
+                });
+            });
+        }
         // Build the theme picker as real keepsake mockups (template art + title + ticked foods)
         function renderThemeSelector() {
             const container = document.getElementById('theme-selector-container');
@@ -1424,9 +1443,10 @@
             container.innerHTML = themes.map(t => `
                 <label class="theme-card cursor-pointer block rounded-2xl border-2 ${t.v === selected ? 'border-clay' : 'border-transparent'} hover:border-clay/40 transition-all p-1.5 bg-gray-50" data-theme-card="${t.v}">
                     <input type="radio" name="pdf-theme" value="${t.v}" ${t.v === selected ? 'checked' : ''} class="sr-only" />
-                    ${posterPreviewHTML(t.v, name, orientation, filled)}
+                    ${previewHolder(t.v, name, orientation, filled)}
                     <span class="mt-1.5 block text-center text-[11px] font-medium text-charcoal">${t.label}</span>
                 </label>`).join('');
+            hydratePreviews(container, orientation, filled);
             const stepLabel = document.getElementById('theme-step-label');
             if (stepLabel) stepLabel.textContent = filled ? '2. Choose your keepsake design' : '2. Choose your tracker design';
         }
@@ -1444,9 +1464,10 @@
                 ];
                 holder.innerHTML = order.map(t => `
                     <figure class="m-0">
-                        ${posterPreviewHTML(t.v, name)}
+                        ${previewHolder(t.v, name, 'p', false)}
                         <figcaption class="text-[10px] text-gray-400 mt-1">${t.label}</figcaption>
                     </figure>`).join('');
+                hydratePreviews(holder, 'p', false);
             }
             openModal(document.getElementById('modal-keepsake-nudge'));
         }
@@ -1590,22 +1611,11 @@
                 if (!bannerPrev) return;
                 const nm = document.getElementById('pdf-baby-name').value;
                 bannerPrev.innerHTML = ['pink', 'sage', 'blue']
-                    .map(t => `<span class="banner-fan-card">${posterPreviewHTML(t, nm)}</span>`).join('');
+                    .map(t => `<span class="banner-fan-card">${previewHolder(t, nm, 'p', false)}</span>`).join('');
+                hydratePreviews(bannerPrev, 'p', false);
             };
-            // Load the heavy theme art lazily so it never blocks first paint / interactivity
-            if (window.THEME_TEMPLATES) {
-                renderBannerFan();
-            } else {
-                const ts = document.createElement('script');
-                ts.src = 'templates.js';
-                ts.async = true;
-                ts.onload = () => {
-                    renderBannerFan();
-                    const mp = document.getElementById('modal-premium');
-                    if (mp && !mp.classList.contains('hidden')) renderThemeSelector();
-                };
-                document.body.appendChild(ts);
-            }
+            // Banner art loads per-theme, on idle, so it never blocks first paint
+            (window.requestIdleCallback || function (f) { setTimeout(f, 1200); })(renderBannerFan);
             document.getElementById('btn-dismiss-banner').addEventListener('click', () => {
                 promoBanner.classList.add('hidden');
             });
@@ -1664,10 +1674,11 @@
             };
             let pendingOrder = null;
 
-            // Generate the personalized tracker PDF from a saved order
-            function deliverTracker(order) {
+            // Generate the personalized tracker PDF from a saved order (loads the theme art first)
+            async function deliverTracker(order) {
                 if (!order) return;
                 try {
+                    if (window.loadThemeArt) await window.loadThemeArt(order.theme, order.orientation === 'l');
                     exportSinglePagePDF(order.name, order.orientation, order.theme, order.filled);
                 } catch (err) {
                     console.error('PDF generation issue:', err);
