@@ -35,33 +35,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
     <!-- templates.js (heavy theme art) is loaded lazily after the tracker is interactive -->
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                        serif: ['Fraunces', 'Georgia', 'serif'],
-                    },
-                    colors: {
-                        cream: '#FAF6EF',
-                        clay: '#E29578',
-                        'clay-deep': '#C66E50',
-                        sage: '#83C5BE',
-                        'sage-light': '#EDF6F9',
-                        oat: '#FFDDD2',
-                        charcoal: '#23202B',
-                        ink: '#1A1820',
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Tailwind theme is precompiled into /styles.css via tailwind.config.js -->
     <style>
         :root {
             --c-bg: #FAF6EF;
