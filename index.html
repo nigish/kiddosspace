@@ -186,6 +186,7 @@
         .poster-preview .pp-box { flex: 0 0 auto; width: 0.95em; height: 0.95em; border: 1px solid rgba(43,45,66,.28); border-radius: 1px; }
         .poster-preview .pp-box-on { background: #C66E50; border-color: #C66E50; }
         .poster-preview .pp-food.pp-tried { font-weight: 600; }
+        .poster-preview .pp-date { flex: 0 0 auto; font-style: italic; color: #C66E50; font-size: 0.82em; margin: 0 0.3em; white-space: nowrap; }
 
         /* ---- Banner: three themed mini trackers fanned like a hand of cards ---- */
         .banner-fan { position: relative; width: 60px; height: 50px; }
@@ -1373,7 +1374,8 @@
                 // Blank mode = clean printable checklist; filled (keepsake) = the user's actually-tried foods ticked
                 cat.items.forEach(it => {
                     const tried = filled && state.tried.includes(generateSlug(cat.id, it));
-                    foods += `<div class="pp-food${tried ? ' pp-tried' : ''}"><span class="pp-name">${escapeHtml(it)}</span><span class="pp-box${tried ? ' pp-box-on' : ''}"></span></div>`;
+                    const ds = tried ? formatTriedDate(state.triedDates && state.triedDates[generateSlug(cat.id, it)]).replace(/\s['’]\d+$/, '') : '';
+                    foods += `<div class="pp-food${tried ? ' pp-tried' : ''}"><span class="pp-name">${escapeHtml(it)}</span>${ds ? `<span class="pp-date">${ds}</span>` : ''}<span class="pp-box${tried ? ' pp-box-on' : ''}"></span></div>`;
                 });
                 foods += `</div>`;
             });
