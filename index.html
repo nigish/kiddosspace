@@ -16,6 +16,15 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 
+    <!-- Installable app (PWA) -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="100 Foods">
+    <script>window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.__bip = e; });</script>
+
     <!-- Open Graph (link previews on WhatsApp, Facebook, iMessage, etc.) -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="My First 100 Foods">
@@ -573,6 +582,12 @@
                         <button id="btn-export-data" class="flex-1 bg-white border border-gray-200 text-xs text-charcoal font-medium py-2 px-3 rounded-xl transition shadow-sm hover:bg-gray-50">Copy Memory Code</button>
                         <button id="btn-import-data" class="flex-1 bg-white border border-gray-200 text-xs text-charcoal font-medium py-2 px-3 rounded-xl transition shadow-sm hover:bg-gray-50">Load Saved Code</button>
                     </div>
+                </div>
+                <div id="install-section" class="p-4 bg-sage-light rounded-2xl border border-sage/20 hidden">
+                    <h4 class="text-sm font-medium text-charcoal mb-1">📲 Add to your home screen</h4>
+                    <p class="text-xs text-gray-500 mb-3">Install the app for one-tap access — opens like an app, no browser bar, works offline.</p>
+                    <button id="btn-install-app" class="w-full bg-clay hover:bg-clay-deep text-white text-xs font-semibold py-2.5 rounded-xl transition hidden">Install app</button>
+                    <p id="ios-install-hint" class="text-[11px] text-gray-500 leading-relaxed hidden">On iPhone/iPad: tap the <strong>Share</strong> button, then <strong>“Add to Home Screen.”</strong></p>
                 </div>
                 <button id="btn-reset-settings" class="w-full bg-red-50 text-red-600 hover:bg-red-100 text-xs font-medium py-2.5 rounded-xl transition flex items-center justify-center gap-1.5">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
@@ -1728,6 +1743,44 @@
                 }
             });
         });
+    </script>
+
+    <!-- PWA: service worker + install-to-home-screen affordance -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js').catch(function () {}); });
+        }
+        (function () {
+            var section = document.getElementById('install-section');
+            var btn = document.getElementById('btn-install-app');
+            var iosHint = document.getElementById('ios-install-hint');
+            if (!section) return;
+            var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+            if (standalone) return; // already installed
+
+            function showInstallButton() {
+                section.classList.remove('hidden');
+                btn.classList.remove('hidden');
+            }
+            if (window.__bip) showInstallButton();
+            window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); window.__bip = e; showInstallButton(); });
+
+            btn.addEventListener('click', async function () {
+                if (!window.__bip) return;
+                window.__bip.prompt();
+                try { await window.__bip.userChoice; } catch (_) {}
+                window.__bip = null;
+                section.classList.add('hidden');
+                if (typeof track === 'function') track('app_installed_prompt');
+            });
+            window.addEventListener('appinstalled', function () { section.classList.add('hidden'); });
+
+            // iOS Safari has no install prompt → show manual "Add to Home Screen" hint
+            var ua = navigator.userAgent;
+            var isIOS = /iphone|ipad|ipod/i.test(ua);
+            var isSafari = /^((?!chrome|crios|fxios|android).)*safari/i.test(ua);
+            if (isIOS && isSafari) { section.classList.remove('hidden'); iosHint.classList.remove('hidden'); }
+        })();
     </script>
 </body>
 </html>
