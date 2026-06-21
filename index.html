@@ -333,8 +333,14 @@
         <div id="hud-progress-bar" class="h-full bg-gradient-to-r from-sage via-clay to-clay-deep transition-all duration-700 ease-out" style="width:0%"></div>
     </div>
 
-    <!-- Floating overall count badge (top-left) -->
-    <div class="fixed top-5 left-4 sm:left-6 z-40">
+    <!-- Brand wordmark (top-left) -->
+    <a href="/" title="My First 100 Foods" class="fixed top-4 left-4 sm:left-6 z-40 flex items-center bg-white/80 backdrop-blur-xl border border-white/60 shadow-lg shadow-charcoal/5 rounded-full px-3.5 py-1.5 font-serif font-semibold text-charcoal leading-none hover:text-clay-deep transition">
+        <span class="sm:hidden text-[13px]"><span class="text-clay-deep">100</span> Foods</span>
+        <span class="hidden sm:inline text-[15px]">My First <span class="text-clay-deep">100</span> Foods</span>
+    </a>
+
+    <!-- Floating overall count badge (top-left, below the brand) -->
+    <div class="fixed top-16 left-4 sm:left-6 z-40">
         <div class="flex items-center gap-3 bg-white/80 backdrop-blur-xl border border-white/60 shadow-lg shadow-charcoal/5 rounded-full pl-2 pr-4 py-2">
             <div class="relative w-11 h-11 flex-shrink-0">
                 <svg viewBox="0 0 44 44" class="w-11 h-11 -rotate-90">
