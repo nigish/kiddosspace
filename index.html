@@ -202,6 +202,22 @@
         .poster-preview .pp-box-on { background: #C66E50; border-color: #C66E50; }
         .poster-preview .pp-food.pp-tried { font-weight: 600; }
         .poster-preview .pp-date { flex: 0 0 auto; font-style: italic; color: #C66E50; font-size: 0.82em; margin: 0 0.3em; white-space: nowrap; }
+        /* Minimalist (classic) theme has no template image — draw its double-line frame + corner dots,
+           matching the PDF (clay outer @9mm, sage inner @12.5mm). Margins differ per axis on A4. */
+        .poster-preview .pp-frame { position: absolute; pointer-events: none; }
+        .poster-preview .pp-frame-outer { inset: 3.03% 4.29%; border: 1px solid #E29578; }
+        .poster-preview .pp-frame-inner { inset: 4.21% 5.95%; border: 1px solid #83C5BE; }
+        .poster-preview.landscape .pp-frame-outer { inset: 4.29% 3.03%; }
+        .poster-preview.landscape .pp-frame-inner { inset: 5.95% 4.21%; }
+        .poster-preview .pp-dot { position: absolute; width: 1.6%; aspect-ratio: 1; background: #E29578; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        .poster-preview .pp-dot-tl { left: 4.29%; top: 3.03%; }
+        .poster-preview .pp-dot-tr { left: 95.71%; top: 3.03%; }
+        .poster-preview .pp-dot-bl { left: 4.29%; top: 96.97%; }
+        .poster-preview .pp-dot-br { left: 95.71%; top: 96.97%; }
+        .poster-preview.landscape .pp-dot-tl { left: 3.03%; top: 4.29%; }
+        .poster-preview.landscape .pp-dot-tr { left: 96.97%; top: 4.29%; }
+        .poster-preview.landscape .pp-dot-bl { left: 3.03%; top: 95.71%; }
+        .poster-preview.landscape .pp-dot-br { left: 96.97%; top: 95.71%; }
 
         /* ---- Banner: three themed mini trackers fanned like a hand of cards ---- */
         .banner-fan { position: relative; width: 60px; height: 50px; }
@@ -1397,7 +1413,11 @@
             const landscape = orientation === 'l';
             const tpl = themeImage(theme, landscape);
             const display = (name && name.trim()) ? name.trim() : 'Nadin';
-            const bg = tpl ? `background-image:url('${tpl}')` : 'background-color:#FFF8F2;box-shadow:inset 0 0 0 2px rgba(226,149,120,.35),0 6px 18px rgba(43,45,66,.16)';
+            const bg = tpl ? `background-image:url('${tpl}')` : 'background-color:#FFF8F2;box-shadow:0 6px 18px rgba(43,45,66,.16)';
+            // Minimalist (classic) theme: decorative double-line frame + corner dots (no template PNG)
+            const frame = (theme === 'classic')
+                ? '<div class="pp-frame pp-frame-outer"></div><div class="pp-frame pp-frame-inner"></div><span class="pp-dot pp-dot-tl"></span><span class="pp-dot pp-dot-tr"></span><span class="pp-dot pp-dot-bl"></span><span class="pp-dot pp-dot-br"></span>'
+                : '';
             let foods = '';
             state.dataset.forEach(cat => {
                 foods += `<div class="pp-cat">${escapeHtml(cat.name)}</div><div class="pp-cat-grid">`;
@@ -1409,7 +1429,7 @@
                 });
                 foods += `</div>`;
             });
-            return `<div class="poster-preview${landscape ? ' landscape' : ''}" style="${bg}"><div class="pp-inner"><div class="pp-title">${escapeHtml(display)}'s First 100 Foods</div>${foods}</div></div>`;
+            return `<div class="poster-preview${landscape ? ' landscape' : ''}" style="${bg}">${frame}<div class="pp-inner"><div class="pp-title">${escapeHtml(display)}'s First 100 Foods</div>${foods}</div></div>`;
         }
         // Keep titles in sync as the name is typed (cheap — no full re-render of the art)
         function updatePreviewTitles() {
